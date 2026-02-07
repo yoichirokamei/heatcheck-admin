@@ -46,11 +46,49 @@ const SITE_TYPES = [
 ];
 
 const CV_GOALS_BY_SITE_TYPE: Record<string, string[]> = {
-  LP: ["お問い合わせ獲得", "資料請求", "資料ダウンロード", "申し込み", "会員登録", "アプリDL", "来店予約", "商品購入", "その他"],
-  HP: ["お問い合わせ獲得", "申し込み", "資料請求", "資料ダウンロード", "会社認知向上", "採用応募", "来店予約", "その他"],
-  EC: ["商品購入", "カート追加", "会員登録", "リピート購入促進", "レビュー投稿", "その他"],
-  広告画像: ["クリック率向上", "ブランド認知", "商品訴求", "キャンペーン告知", "その他"],
-  各種サムネイル: ["クリック率向上", "視認性向上", "ブランド統一", "情報伝達", "その他"],
+  LP: [
+    "お問い合わせ獲得",
+    "資料請求",
+    "資料ダウンロード",
+    "申し込み",
+    "会員登録",
+    "アプリDL",
+    "来店予約",
+    "商品購入",
+    "その他",
+  ],
+  HP: [
+    "お問い合わせ獲得",
+    "申し込み",
+    "資料請求",
+    "資料ダウンロード",
+    "会社認知向上",
+    "採用応募",
+    "来店予約",
+    "その他",
+  ],
+  EC: [
+    "商品購入",
+    "カート追加",
+    "会員登録",
+    "リピート購入促進",
+    "レビュー投稿",
+    "その他",
+  ],
+  広告画像: [
+    "クリック率向上",
+    "ブランド認知",
+    "商品訴求",
+    "キャンペーン告知",
+    "その他",
+  ],
+  各種サムネイル: [
+    "クリック率向上",
+    "視認性向上",
+    "ブランド統一",
+    "情報伝達",
+    "その他",
+  ],
 };
 
 // --- Gemini API Configuration ---
@@ -177,7 +215,9 @@ export default function HeatCheckAdmin() {
   // Manual designer notes (editing state)
   const [manualImprovements, setManualImprovements] = useState<any[]>([]);
   // Manual designer notes (saved / committed to report)
-  const [savedManualImprovements, setSavedManualImprovements] = useState<any[]>([]);
+  const [savedManualImprovements, setSavedManualImprovements] = useState<any[]>(
+    [],
+  );
   const [manualSaved, setManualSaved] = useState(false);
   const [designerComment, setDesignerComment] = useState("");
 
@@ -241,7 +281,11 @@ export default function HeatCheckAdmin() {
     ]);
   };
 
-  const updateManualImprovement = (index: number, field: string, value: string) => {
+  const updateManualImprovement = (
+    index: number,
+    field: string,
+    value: string,
+  ) => {
     const updated = [...manualImprovements];
     updated[index][field] = value;
     setManualImprovements(updated);
@@ -397,7 +441,11 @@ export default function HeatCheckAdmin() {
 
       setResult(jsonResult);
       setEditedImprovements(
-        jsonResult.improvements.map((imp: any) => ({ ...imp, selected: true, source: "ai" })),
+        jsonResult.improvements.map((imp: any) => ({
+          ...imp,
+          selected: true,
+          source: "ai",
+        })),
       );
       setStep("diagnosis");
     } catch (err) {
@@ -428,7 +476,11 @@ export default function HeatCheckAdmin() {
     setEditedImprovements(updated);
   };
 
-  const handleSavedManualTextChange = (index: number, field: string, value: string) => {
+  const handleSavedManualTextChange = (
+    index: number,
+    field: string,
+    value: string,
+  ) => {
     const updated = [...savedManualImprovements];
     updated[index][field] = value;
     setSavedManualImprovements(updated);
@@ -553,11 +605,14 @@ export default function HeatCheckAdmin() {
 
         {/* --- Page 2: Visual Data --- */}
         <A4Page>
-          <PDFHeader title="視覚解析データ詳細" date={date} pageNum={String(pageCounter++)} />
+          <PDFHeader
+            title="視覚解析データ詳細"
+            date={date}
+            pageNum={String(pageCounter++)}
+          />
 
           {/* Main content area: flex-1 で残り高さを全て占有 */}
           <div className="flex-1 flex flex-col min-h-0">
-
             {/* Title: 固定高さ */}
             <div className="flex items-center gap-2 mb-3 shrink-0">
               <Eye className="w-5 h-5 text-orange-600" />
@@ -567,8 +622,9 @@ export default function HeatCheckAdmin() {
             </div>
 
             {/* Image Container: flex-1 + min-h-0 で残り高さを占有し、はみ出さない */}
-            <div className={`flex-1 min-h-0 ${isVertical ? "grid grid-cols-2" : "flex flex-col"} gap-3`}>
-
+            <div
+              className={`flex-1 min-h-0 ${isVertical ? "grid grid-cols-2" : "flex flex-col"} gap-3`}
+            >
               {/* Original Design */}
               <div className="flex flex-col min-h-0 overflow-hidden">
                 <div className="bg-slate-100 text-slate-600 text-center text-xs font-bold py-1.5 shrink-0">
@@ -600,7 +656,6 @@ export default function HeatCheckAdmin() {
                   )}
                 </div>
               </div>
-
             </div>
 
             {/* Note: 固定高さ */}
@@ -608,7 +663,6 @@ export default function HeatCheckAdmin() {
               ※赤色が濃い箇所ほど、ユーザーの視線が集中していることを示します（Attention
               Insight予測モデルによる解析）。
             </p>
-
           </div>
 
           <PDFFooter />
@@ -634,7 +688,8 @@ export default function HeatCheckAdmin() {
                     >
                       <div className="flex items-center gap-3 mb-4">
                         <span className="bg-slate-800 text-white text-xs font-bold px-3 py-1">
-                          {item.source === "manual" ? "Designer" : "AI"} Issue {String(globalIdx + 1).padStart(2, "0")}
+                          {item.source === "manual" ? "Designer" : "AI"} Issue{" "}
+                          {String(globalIdx + 1).padStart(2, "0")}
                         </span>
                         <h4 className="font-bold text-lg text-slate-800">
                           {item.title}
@@ -670,7 +725,11 @@ export default function HeatCheckAdmin() {
 
         {/* --- Last Page: Company Info --- */}
         <A4Page>
-          <PDFHeader title="運営企業・お問い合わせ" date={date} pageNum={String(pageCounter++)} />
+          <PDFHeader
+            title="運営企業・お問い合わせ"
+            date={date}
+            pageNum={String(pageCounter++)}
+          />
 
           <div className="flex-1 flex flex-col items-center text-center pt-8">
             <div className="w-full max-w-lg p-10 mb-12">
@@ -797,7 +856,9 @@ export default function HeatCheckAdmin() {
             {/* Grand Total Box - white bg + gray border */}
             <div className="border-2 border-slate-300 bg-white p-8 mb-12">
               <div className="flex justify-between items-end border-b border-slate-200 pb-4 mb-4">
-                <span className="text-lg font-bold text-slate-800">御見積合計金額 (税込)</span>
+                <span className="text-lg font-bold text-slate-800">
+                  御見積合計金額 (税込)
+                </span>
                 <span className="text-5xl font-bold tracking-tight text-slate-800">
                   ¥{(total + tax).toLocaleString()}
                 </span>
@@ -851,7 +912,11 @@ export default function HeatCheckAdmin() {
         {/* --- Page 2+: Details (paginated) --- */}
         {detailPages.map((pageItems, pageIdx) => (
           <A4Page key={`est-page-${pageIdx}`}>
-            <PDFHeader title="改善提案・作業明細" date={date} pageNum={String(pageCounter++)} />
+            <PDFHeader
+              title="改善提案・作業明細"
+              date={date}
+              pageNum={String(pageCounter++)}
+            />
 
             <div className="flex-1">
               <table className="w-full text-sm text-left">
@@ -944,7 +1009,9 @@ export default function HeatCheckAdmin() {
         <div className="flex items-center gap-3">
           <img src={LOGO_PATH} alt={SERVICE_NAME} className="h-12 w-auto" />
           <div className="border-l border-slate-200 pl-3">
-            <h1 className="text-sm font-bold tracking-wider text-slate-800">{APP_NAME}</h1>
+            <h1 className="text-sm font-bold tracking-wider text-slate-800">
+              {APP_NAME}
+            </h1>
             <p className="text-[10px] text-slate-400">for {COMPANY_NAME}</p>
           </div>
         </div>
@@ -1190,9 +1257,14 @@ export default function HeatCheckAdmin() {
               </p>
 
               {manualImprovements.map((item: any, idx: number) => (
-                <div key={item.id} className="bg-white border border-orange-200 p-4 mb-4">
+                <div
+                  key={item.id}
+                  className="bg-white border border-orange-200 p-4 mb-4"
+                >
                   <div className="flex justify-between items-center mb-3">
-                    <span className="text-sm font-bold text-orange-700">追記項目 {idx + 1}</span>
+                    <span className="text-sm font-bold text-orange-700">
+                      追記項目 {idx + 1}
+                    </span>
                     <button
                       onClick={() => removeManualImprovement(idx)}
                       className="text-red-400 hover:text-red-600"
@@ -1204,20 +1276,34 @@ export default function HeatCheckAdmin() {
                     <input
                       type="text"
                       value={item.title}
-                      onChange={(e) => updateManualImprovement(idx, "title", e.target.value)}
+                      onChange={(e) =>
+                        updateManualImprovement(idx, "title", e.target.value)
+                      }
                       placeholder="課題タイトル"
                       className="w-full p-2 border border-slate-200 text-sm font-bold outline-none focus:border-orange-500"
                     />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <AutoResizeTextarea
                         value={item.problem}
-                        onChange={(e: any) => updateManualImprovement(idx, "problem", e.target.value)}
+                        onChange={(e: any) =>
+                          updateManualImprovement(
+                            idx,
+                            "problem",
+                            e.target.value,
+                          )
+                        }
                         placeholder="現状の課題を記入..."
                         className="w-full p-2 border border-slate-200 text-sm outline-none focus:border-red-400"
                       />
                       <AutoResizeTextarea
                         value={item.solution}
-                        onChange={(e: any) => updateManualImprovement(idx, "solution", e.target.value)}
+                        onChange={(e: any) =>
+                          updateManualImprovement(
+                            idx,
+                            "solution",
+                            e.target.value,
+                          )
+                        }
                         placeholder="改善ソリューションを記入..."
                         className="w-full p-2 border border-slate-200 text-sm outline-none focus:border-blue-400"
                       />
@@ -1242,7 +1328,8 @@ export default function HeatCheckAdmin() {
                     </>
                   ) : (
                     <>
-                      <FileCheck className="w-4 h-4" /> 追記項目を診断結果に保存・反映
+                      <FileCheck className="w-4 h-4" />{" "}
+                      追記項目を診断結果に保存・反映
                     </>
                   )}
                 </button>
@@ -1334,7 +1421,9 @@ export default function HeatCheckAdmin() {
                       onChange={() => toggleSelection(idx)}
                       className="w-6 h-6 text-orange-600 focus:ring-orange-500 cursor-pointer"
                     />
-                    <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 font-bold">AI</span>
+                    <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 font-bold">
+                      AI
+                    </span>
                     <span
                       className={`font-bold ${item.selected ? "text-green-700" : "text-slate-400"}`}
                     >
@@ -1431,7 +1520,9 @@ export default function HeatCheckAdmin() {
                       onChange={() => toggleManualSelection(idx)}
                       className="w-6 h-6 text-orange-600 focus:ring-orange-500 cursor-pointer"
                     />
-                    <span className="text-xs bg-orange-200 text-orange-700 px-2 py-0.5 font-bold">Designer</span>
+                    <span className="text-xs bg-orange-200 text-orange-700 px-2 py-0.5 font-bold">
+                      Designer
+                    </span>
                     <span
                       className={`font-bold ${item.selected ? "text-orange-700" : "text-slate-400"}`}
                     >
@@ -1449,7 +1540,11 @@ export default function HeatCheckAdmin() {
                           type="text"
                           value={item.title}
                           onChange={(e) =>
-                            handleSavedManualTextChange(idx, "title", e.target.value)
+                            handleSavedManualTextChange(
+                              idx,
+                              "title",
+                              e.target.value,
+                            )
                           }
                           disabled={!item.selected}
                           className="font-bold text-xl text-slate-800 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-orange-500 outline-none w-full pb-1 disabled:text-slate-400"
@@ -1459,7 +1554,11 @@ export default function HeatCheckAdmin() {
                         <AutoResizeTextarea
                           value={item.problem}
                           onChange={(e: any) =>
-                            handleSavedManualTextChange(idx, "problem", e.target.value)
+                            handleSavedManualTextChange(
+                              idx,
+                              "problem",
+                              e.target.value,
+                            )
                           }
                           className="w-full bg-transparent text-base text-slate-700 border-none p-0 focus:ring-0 resize-none leading-relaxed"
                           readOnly={!item.selected}
@@ -1479,7 +1578,11 @@ export default function HeatCheckAdmin() {
                         <AutoResizeTextarea
                           value={item.solution}
                           onChange={(e: any) =>
-                            handleSavedManualTextChange(idx, "solution", e.target.value)
+                            handleSavedManualTextChange(
+                              idx,
+                              "solution",
+                              e.target.value,
+                            )
                           }
                           className="w-full bg-transparent text-base text-slate-700 border-none p-0 focus:ring-0 resize-none leading-relaxed"
                           readOnly={!item.selected}
@@ -1585,7 +1688,9 @@ export default function HeatCheckAdmin() {
                     onChange={(e) => setGoal(e.target.value)}
                   >
                     {(CV_GOALS_BY_SITE_TYPE[siteType] || []).map((g) => (
-                      <option key={g} value={g}>{g}</option>
+                      <option key={g} value={g}>
+                        {g}
+                      </option>
                     ))}
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
@@ -1786,7 +1891,9 @@ export default function HeatCheckAdmin() {
               </label>
               <AutoResizeTextarea
                 value={designerComment}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDesignerComment(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setDesignerComment(e.target.value)
+                }
                 className="w-full border border-slate-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 placeholder="例：全体的に良いと思うが、FVでの離脱が懸念。CTAボタンの色が弱いかもしれない。"
               />
