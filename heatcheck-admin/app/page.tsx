@@ -198,6 +198,10 @@ export default function HeatCheckAdmin() {
   });
   const [showOptionalInputs, setShowOptionalInputs] = useState(false);
 
+  // CSV Data
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvData, setCsvData] = useState<string>("");
+
   // Images
   const [orgImage, setOrgImage] = useState<File | null>(null);
   const [orgPreview, setOrgPreview] = useState<string | null>(null);
@@ -379,6 +383,21 @@ export default function HeatCheckAdmin() {
         3. Consistency: ${aiData.consistency}
         4. Colors: ${aiData.colors}
 
+        ${csvData ? `【Attention Insight AOI解析データ (CSV)】:\n${csvData}` : ""}
+
+        【解析プロセス】
+        解析は以下の2ステップで行ってください：
+
+        **ステップ1: 定量分析 (quantitative_analysis)**
+        - CSVデータやAttention Insightの数値データに基づき、客観的な事実のみを抽出します。
+        - 各要素（CTA、ヘッダー、画像等）の注目度(%)、AOI面積比、視線集中度などの数値を用いて評価します。
+        - 主観的な解釈は含めず、データが示す事実のみを記述します。
+
+        **ステップ2: 定性分析 (qualitative_analysis)**
+        - デザインの専門的な視点から、定量データでは測れない評価を行います。
+        - 配色・レイアウト・タイポグラフィ・視線誘導・ブランド一貫性などのデザイン要素を評価します。
+        - プロのWebデザイナー/UXコンサルタントとしての考察を記述します。
+
         【見積もり算出ロジック】
         1. Level 1 (Text/Color): 5000 〜 10000
         2. Level 2 (Image): 10000 〜 30000
@@ -395,7 +414,22 @@ export default function HeatCheckAdmin() {
         {
           "score": (0-100の整数),
           "score_reason": "プロの視点で評価理由を解説（「顔が見られているため信頼性が高い」など現場レベルの分析を含める）。デザイナーへの言及は禁止。",
-          "summary": "クライアントへの提案メッセージ。良い点は「勝ちパターン」として認め、改善点は「さらにCVRを上げるための施策」としてポジティブに提案。HeatCheck主体の一人称で語ること。",
+          "quantitative_analysis": {
+            "summary": "数値データに基づいた客観的な分析サマリー（CSVデータやAttention Insightの数値を引用）",
+            "details": [
+              {
+                "element": "要素名（例: CTA、ヘッダー、メイン画像）",
+                "value": "数値（例: 1.7%、32%）",
+                "assessment": "High / Medium / Low",
+                "comment": "この数値が意味すること"
+              }
+            ]
+          },
+          "qualitative_analysis": {
+            "summary": "デザイン視点での分析サマリー（配色、レイアウト、視線誘導等の専門的考察）",
+            "design_points": ["配色に関する考察", "レイアウトに関する考察", "視線誘導に関する考察"]
+          },
+          "summary": "クライアントへの総合提案メッセージ。良い点は「勝ちパターン」として認め、改善点は「さらにCVRを上げるための施策」としてポジティブに提案。HeatCheck主体の一人称で語ること。",
           "improvements": [
             {
               "id": 1,
@@ -549,7 +583,7 @@ export default function HeatCheckAdmin() {
           </button>
         </div>
 
-        {/* --- Page 1: Summary & Score --- */}
+        {/* --- Page 1: Title Page --- */}
         <A4Page>
           <PDFHeader
             title="Webサイト アテンション解析レポート"
@@ -557,18 +591,41 @@ export default function HeatCheckAdmin() {
             pageNum={String(pageCounter++)}
           />
 
-          <div className="flex-1 flex flex-col justify-center">
-            {/* Client Info */}
-            <div className="mb-12 border-l-8 border-orange-500 pl-6 py-2">
-              <h2 className="text-3xl font-bold mb-2">
-                {clientName || "お客様"} 御中
+          <div className="flex-1 flex flex-col items-center">
+            <div className="flex-[4]"></div>
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-black text-slate-800 mb-6 tracking-tight">
+                Webサイト<br />アテンション解析レポート
               </h2>
-              <div className="text-slate-500 flex gap-6">
-                <span>対象サイト: {siteType}</span>
-                <span>解析目的: {goal}</span>
+              <div className="w-24 h-1 bg-orange-500 mx-auto mb-8"></div>
+              <p className="text-lg text-slate-500">
+                Attention Insight ヒートマップ解析に基づく診断結果
+              </p>
+            </div>
+            <div className="flex-[6]"></div>
+
+            <div className="mb-24 text-center">
+              <p className="text-lg text-slate-600 mb-1">
+                {clientName || "お客様"} 御中
+              </p>
+              <div className="text-xs text-slate-400 space-y-0.5 mt-2">
+                <p>対象サイト: {siteType}　／　解析目的: {goal}</p>
+                <p>発行日: {date}</p>
               </div>
             </div>
+          </div>
+          <PDFFooter />
+        </A4Page>
 
+        {/* --- Page 2: Score & Qualitative Analysis --- */}
+        <A4Page>
+          <PDFHeader
+            title="総合得点・デザイン定性分析"
+            date={date}
+            pageNum={String(pageCounter++)}
+          />
+
+          <div className="flex-1">
             {/* Score */}
             <div className="border border-slate-200 p-10 mb-10">
               <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 text-center">
@@ -589,11 +646,85 @@ export default function HeatCheckAdmin() {
               </div>
             </div>
 
+            {/* Qualitative Analysis */}
+            {result.qualitative_analysis && (
+              <div className="mb-6">
+                <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  <Eye className="w-5 h-5 text-purple-600" />
+                  デザイン定性分析（プロの考察）
+                </h4>
+                <div className="text-sm leading-relaxed text-slate-700 p-4 border-l-4 border-purple-500 mb-3">
+                  {result.qualitative_analysis.summary}
+                </div>
+                {result.qualitative_analysis.design_points && result.qualitative_analysis.design_points.length > 0 && (
+                  <ul className="space-y-1 pl-4">
+                    {result.qualitative_analysis.design_points.map((point: string, i: number) => (
+                      <li key={i} className="text-sm text-slate-700 flex items-start gap-2">
+                        <span className="text-purple-500 mt-1 shrink-0">&#9654;</span>
+                        {point}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+          <PDFFooter />
+        </A4Page>
+
+        {/* --- Page 3: Quantitative Analysis & Summary --- */}
+        <A4Page>
+          <PDFHeader
+            title="定量データ分析・総合提案"
+            date={date}
+            pageNum={String(pageCounter++)}
+          />
+
+          <div className="flex-1">
+            {/* Quantitative Analysis */}
+            {result.quantitative_analysis && (
+              <div className="mb-8">
+                <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  <Calculator className="w-5 h-5 text-blue-600" />
+                  定量データ分析（数値の事実）
+                </h4>
+                <div className="text-sm leading-relaxed text-slate-700 p-4 border-l-4 border-blue-500 mb-3">
+                  {result.quantitative_analysis.summary}
+                </div>
+                {result.quantitative_analysis.details && result.quantitative_analysis.details.length > 0 && (
+                  <table className="w-full text-xs border border-slate-200">
+                    <thead className="bg-slate-100 text-slate-600">
+                      <tr>
+                        <th className="p-2 text-left">要素</th>
+                        <th className="p-2 text-center">数値</th>
+                        <th className="p-2 text-center">評価</th>
+                        <th className="p-2 text-left">コメント</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {result.quantitative_analysis.details.map((d: any, i: number) => (
+                        <tr key={i}>
+                          <td className="p-2 font-medium">{d.element}</td>
+                          <td className="p-2 text-center font-mono">{d.value}</td>
+                          <td className="p-2 text-center">
+                            <span className={`px-2 py-0.5 text-xs font-bold ${d.assessment === "High" ? "bg-green-100 text-green-700" : d.assessment === "Medium" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}>
+                              {d.assessment}
+                            </span>
+                          </td>
+                          <td className="p-2 text-slate-600">{d.comment}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+
             {/* Summary */}
             <div className="mb-8">
               <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-orange-600" />
-                解析サマリー
+                総合提案メッセージ
               </h4>
               <div className="text-sm leading-relaxed text-slate-700 p-6 border-l-4 border-orange-500">
                 {result.summary}
@@ -1023,8 +1154,22 @@ export default function HeatCheckAdmin() {
               ) {
                 setStep("input");
                 setResult(null);
+                setEditedImprovements([]);
                 setManualImprovements([]);
                 setSavedManualImprovements([]);
+                setCsvFile(null);
+                setCsvData("");
+                setClientName("");
+                setSiteType("LP");
+                setGoal("お問い合わせ獲得");
+                setAiData({ conversion: "", distribution: "", consistency: "", colors: "" });
+                setShowOptionalInputs(false);
+                setOrgImage(null);
+                setOrgPreview(null);
+                setHeatImage(null);
+                setHeatPreview(null);
+                setDesignerComment("");
+                setError(null);
               }
             }}
             className="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-2 text-slate-600 flex items-center gap-2 border border-slate-200"
@@ -1087,9 +1232,72 @@ export default function HeatCheckAdmin() {
                 </div>
               </div>
 
+              {/* Quantitative Analysis */}
+              {result.quantitative_analysis && (
+                <div className="p-6 border-l-4 border-blue-500 mb-4">
+                  <h4 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <Calculator className="w-4 h-4 text-blue-600" /> 定量データ分析（数値の事実）
+                  </h4>
+                  <p className="text-slate-700 leading-relaxed whitespace-pre-wrap mb-4">
+                    {result.quantitative_analysis.summary}
+                  </p>
+                  {result.quantitative_analysis.details && result.quantitative_analysis.details.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm border border-slate-200">
+                        <thead className="bg-slate-100 text-slate-600">
+                          <tr>
+                            <th className="p-3 text-left">要素</th>
+                            <th className="p-3 text-center">数値</th>
+                            <th className="p-3 text-center">評価</th>
+                            <th className="p-3 text-left">コメント</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {result.quantitative_analysis.details.map((d: any, i: number) => (
+                            <tr key={i} className="hover:bg-slate-50">
+                              <td className="p-3 font-medium">{d.element}</td>
+                              <td className="p-3 text-center font-mono font-bold">{d.value}</td>
+                              <td className="p-3 text-center">
+                                <span className={`px-2 py-1 text-xs font-bold ${d.assessment === "High" ? "bg-green-100 text-green-700" : d.assessment === "Medium" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}>
+                                  {d.assessment}
+                                </span>
+                              </td>
+                              <td className="p-3 text-slate-600">{d.comment}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Qualitative Analysis */}
+              {result.qualitative_analysis && (
+                <div className="p-6 border-l-4 border-purple-500 mb-4">
+                  <h4 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-purple-600" /> デザイン定性分析（プロの考察）
+                  </h4>
+                  <p className="text-slate-700 leading-relaxed whitespace-pre-wrap mb-4">
+                    {result.qualitative_analysis.summary}
+                  </p>
+                  {result.qualitative_analysis.design_points && result.qualitative_analysis.design_points.length > 0 && (
+                    <ul className="space-y-2">
+                      {result.qualitative_analysis.design_points.map((point: string, i: number) => (
+                        <li key={i} className="text-slate-700 flex items-start gap-2">
+                          <span className="text-purple-500 mt-1 shrink-0">&#9654;</span>
+                          {point}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {/* Summary */}
               <div className="p-6 border-l-4 border-orange-500">
                 <h4 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-orange-600" /> AI総評
+                  <FileText className="w-4 h-4 text-orange-600" /> 総合提案メッセージ
                 </h4>
                 <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
                   {result.summary}
@@ -1795,6 +2003,53 @@ export default function HeatCheckAdmin() {
                       }
                     />
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* CSV Upload Area */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-green-600" />
+                Attention Insight AOI解析データ（CSV）（任意）
+              </label>
+              {csvFile ? (
+                <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200">
+                  <FileCheck className="w-5 h-5 text-green-600 shrink-0" />
+                  <span className="text-sm text-green-800 font-medium truncate flex-1">
+                    {csvFile.name}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setCsvFile(null);
+                      setCsvData("");
+                    }}
+                    className="text-slate-400 hover:text-red-500 shrink-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative group h-20 border-2 border-dashed border-green-300 hover:bg-green-50/50 transition cursor-pointer flex items-center justify-center overflow-hidden">
+                  <input
+                    type="file"
+                    accept=".csv"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setCsvFile(file);
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        setCsvData((ev.target?.result as string) || "");
+                      };
+                      reader.readAsText(file);
+                    }}
+                  />
+                  <Upload className="w-6 h-6 text-green-300 mr-2 group-hover:text-green-400 transition" />
+                  <span className="text-xs text-green-500">
+                    CSVファイルをアップロード
+                  </span>
                 </div>
               )}
             </div>
