@@ -25,7 +25,10 @@ import {
   Plus,
   Trash2,
   MessageSquare,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
+import { addAnalysisResult } from "../lib/db";
 
 // --- Global Constants ---
 const COMPANY_NAME = "合同会社WEBでええじゃないか";
@@ -90,6 +93,65 @@ const CV_GOALS_BY_SITE_TYPE: Record<string, string[]> = {
     "その他",
   ],
 };
+
+// --- デザイン添削のセオリー・判断基準（随時更新） ---
+const DESIGN_GUIDELINES = `
+【デザイン添削の絶対的判断基準 (Design Principles)】
+AIは以下の原則に基づき、ユーザーの視点とコンバージョン(CV)の観点から厳格に評価を行ってください。
+
+## 1. デザインの4大原則（基本レイアウト）
+デザインの良し悪しは「センス」ではなく、以下の4原則が守られているかで論理的に判定する。
+
+1. **近接 (Proximity) - 「情報のグループ化」**
+   - **ルール:** 関連する情報（画像とキャプション、見出しと本文）は物理的に近づけ、一つの「かたまり」として認識させる。
+   - **NG判定:** 要素間の余白が均等すぎて、情報のまとまりが直感的に分からない。関連性の低い要素同士が近すぎて誤解を招いている。
+
+2. **整列 (Alignment) - 「見えない線の意識」**
+   - **ルール:** 全ての要素を意図的に配置し、見えない線（グリッド）に沿って端を揃える。
+   - **推奨:** 基本は「左揃え」で可読性を担保。「中央揃え」は見出しや短いテキストに限定し、長文での使用は避ける。
+   - **NG判定:** 意図なく配置が数ピクセルずれている。左揃えと中央揃えが無秩序に混在し、視線の開始位置が定まらない。
+
+3. **反復 (Repetition) - 「一貫性の担保」**
+   - **ルール:** 色、フォント、装飾、ボタン形状などの視覚的特徴をサイト全体で統一し、繰り返す。
+   - **NG判定:** セクションごとに見出しのデザインが異なる。ボタンのデザインが統一されておらず、どれがクリック可能か迷う。
+
+4. **コントラスト (Contrast) - 「優先順位の可視化」**
+   - **ルール:** 「見てほしいもの」と「そうでないもの」の差を極端につける（ジャンプ率）。
+   - **手法:** サイズ（大小）、色（濃淡・補色）、太さ（ウェイト）でメリハリをつける。
+   - **NG判定:** 全体的に平坦で、どこが重要か一目で分からない。背景色と文字色が同化して可読性が低い。
+
+## 2. 配色とフォント (Color & Typography)
+* **配色の黄金比:** 「ベースカラー(70%)：メインカラー(25%)：アクセントカラー(5%)」が守られているか。
+* **色数の制限:** 原則として3色〜4色以内に抑える。色数が多すぎる場合は「ノイズ過多」として指摘する。
+* **フォント選び:**
+    * **ゴシック体:** 親近感、安定感、現代的（Webの本文に推奨）。
+    * **明朝体:** 高級感、真面目さ、和風（見出しや女性向けデザインに推奨）。
+    * **NG判定:** コンセプトに合わないフォント選定。行間（line-height）が詰まりすぎて読みにくい（推奨は1.5〜1.8倍）。
+
+## 3. Webマーケティング視点とヒートマップ解析
+デザインの美しさよりも「情報の伝達」と「行動喚起」ができているかを最優先する。
+
+### 【ファーストビュー (FV) の鉄則】
+* **3秒ルール:** ユーザーは3秒で「自分に関係あるか」を判断する。キャッチコピーとメインビジュアルで「何のサイトか」「ベネフィットは何か」が瞬時に伝わるか。
+* **ヒートマップ判定:**
+    * **OK:** キャッチコピーやCTAが赤/黄色（熟読）になっている。
+    * **NG:** 雰囲気重視の背景写真ばかり見られていて、肝心のテキストが青色（スルー）になっている（＝雰囲気イケメン・雰囲気美女サイト）。
+
+### 【視線誘導 (Eye Tracking)】
+* **Zの法則 / Fの法則:** 視線は「左上→右上→左下→右下」または「F型」に動く。重要な要素はこの動線上に配置されているか。
+* **Gaze Cueing (視線による誘導):** 人物写真の「目線」や「指差しの方向」にCTAや重要テキストがあるか。（顔だけ見られている場合はバンパイア効果として減点）。
+
+### 【CTA (Call To Action) ボタン】
+* **デザイン:** 周囲から浮き立つ「アクセントカラー」を使用しているか。立体感（シャドウ）等で「押せること」が明白か。
+* **マイクロコピー:** ボタンの近くに「無料」「1分で完了」などのハードルを下げる文言があるか（近接の原則）。
+* **ヒートマップ判定:** ここが「青色」なら致命的欠陥として扱う。
+
+## 4. 実際の添削ロジック (AIへの指示)
+解析時は以下のステップで思考せよ。
+1. **事実確認:** ヒートマップで「赤い箇所（注目）」と「青い箇所（無視）」を特定する。
+2. **原則照合:** なぜそこが見られていないのか？「コントラストが弱いからか？」「整列がズレていて視線が止まらないからか？」を上記4原則から特定する。
+3. **改善提案:** 感覚的な言葉ではなく、「コントラスト比を上げるために背景を薄くし、文字を太くする」「関連する画像の距離を10px近づける」など、具体的な修正指示を出す。
+`;
 
 // --- Gemini API Configuration ---
 const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
@@ -225,6 +287,9 @@ export default function HeatCheckAdmin() {
   const [manualSaved, setManualSaved] = useState(false);
   const [designerComment, setDesignerComment] = useState("");
 
+  // Feedback State
+  const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+
   // UI State
   const [sliderPos, setSliderPos] = useState(50);
 
@@ -297,6 +362,12 @@ export default function HeatCheckAdmin() {
 
   const removeManualImprovement = (index: number) => {
     setManualImprovements(manualImprovements.filter((_, i) => i !== index));
+  };
+
+  const toggleManualImprovementSelection = (index: number) => {
+    const updated = [...manualImprovements];
+    updated[index].selected = !updated[index].selected;
+    setManualImprovements(updated);
   };
 
   // Save manual improvements
@@ -404,6 +475,13 @@ export default function HeatCheckAdmin() {
         3. Level 3 (Layout): 30000 〜 50000
         4. Renewal (LP): 200000〜
         5. Renewal (HP): 300000〜
+
+        【デザイン添削の絶対基準（ガイドライン）】
+        以下のプロの判断基準（セオリー）を遵守し、これに矛盾する評価は行わないでください。
+
+        """
+        ${DESIGN_GUIDELINES}
+        """
 
         【サマリー生成の絶対ルール（Tone & Manner）】
         - **「デザイナーの指摘通り」「ご入力いただいた懸念の通り」等のメタな発言は禁止です。** 入力された所感は、あくまで「解析のヒント」として内部的に使い、出力文には含めないでください。
@@ -538,6 +616,59 @@ export default function HeatCheckAdmin() {
       .reduce((acc, curr) => acc + curr.estimated_price, 0);
   };
 
+  const handleItemFeedback = (idx: number, rating: 'good' | 'bad') => {
+    const updated = [...editedImprovements];
+    updated[idx] = {
+      ...updated[idx],
+      feedback: {
+        rating,
+        reason: rating === 'bad' ? (updated[idx].feedback?.reason || '') : undefined,
+      },
+    };
+    setEditedImprovements(updated);
+  };
+
+  const handleItemFeedbackReason = (idx: number, reason: string) => {
+    const updated = [...editedImprovements];
+    updated[idx] = {
+      ...updated[idx],
+      feedback: { ...updated[idx].feedback, rating: 'bad' as const, reason },
+    };
+    setEditedImprovements(updated);
+  };
+
+  const handleSaveFeedback = async () => {
+    if (!result) return;
+    setFeedbackStatus('saving');
+    try {
+      await addAnalysisResult({
+        inputs: {
+          clientName,
+          siteType,
+          goal,
+          designerComment,
+          aiData,
+        },
+        ai_output_raw: result,
+        final_report_data: {
+          score: result.score,
+          summary: result.summary,
+          improvements: editedImprovements.map((item: any) => ({
+            title: item.title,
+            problem: item.problem,
+            solution: item.solution,
+            feedback: item.feedback || undefined,
+          })),
+        },
+      });
+      setFeedbackStatus('saved');
+      setTimeout(() => setFeedbackStatus('idle'), 3000);
+    } catch (err) {
+      console.error('Failed to save feedback:', err);
+      setFeedbackStatus('idle');
+    }
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -562,7 +693,7 @@ export default function HeatCheckAdmin() {
     });
 
     // Paginate improvements (3 per page)
-    const improvementPages = chunkItems(allImprovements, 3);
+    const improvementPages = chunkItems(allImprovements.filter((i: any) => i.selected), 3);
     let pageCounter = 1;
 
     return (
@@ -1170,6 +1301,8 @@ export default function HeatCheckAdmin() {
                 setHeatPreview(null);
                 setDesignerComment("");
                 setError(null);
+                setManualSaved(false);
+                setFeedbackStatus('idle');
               }
             }}
             className="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-2 text-slate-600 flex items-center gap-2 border border-slate-200"
@@ -1304,6 +1437,7 @@ export default function HeatCheckAdmin() {
                 </p>
               </div>
             </div>
+
           </section>
 
           {/* Section 2: Before/After Slider */}
@@ -1366,21 +1500,52 @@ export default function HeatCheckAdmin() {
             </div>
             <div className="divide-y divide-slate-100">
               {editedImprovements.map((item: any, idx: number) => (
-                <div key={idx} className="p-8 hover:bg-slate-50 transition">
+                <div
+                  key={idx}
+                  className={`p-8 transition border-l-4 ${item.selected ? "bg-white border-green-500" : "bg-slate-50 border-transparent opacity-60"}`}
+                >
+                  <div className="mb-4 flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={item.selected}
+                      onChange={() => toggleSelection(idx)}
+                      className="w-6 h-6 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                    />
+                    <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 font-bold">
+                      AI
+                    </span>
+                    <span
+                      className={`font-bold ${item.selected ? "text-green-700" : "text-slate-400"}`}
+                    >
+                      {item.selected ? "レポートに含める" : "レポートから除外"}
+                    </span>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                     <div className="space-y-4">
                       <div className="flex items-start gap-3">
                         <span className="bg-red-100 text-red-600 font-bold px-2 py-1 text-xs mt-1 shrink-0">
                           課題 {idx + 1}
                         </span>
-                        <h3 className="font-bold text-xl text-slate-800">
-                          {item.title}
-                        </h3>
+                        <input
+                          type="text"
+                          value={item.title}
+                          onChange={(e) =>
+                            handleTextChange(idx, "title", e.target.value)
+                          }
+                          disabled={!item.selected}
+                          className="font-bold text-xl text-slate-800 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-orange-500 outline-none w-full pb-1 disabled:text-slate-400"
+                        />
                       </div>
                       <div className="border-l-4 border-red-400 pl-4">
-                        <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
-                          {item.problem}
-                        </p>
+                        <AutoResizeTextarea
+                          value={item.problem}
+                          onChange={(e: any) =>
+                            handleTextChange(idx, "problem", e.target.value)
+                          }
+                          className="w-full bg-transparent text-base text-slate-700 border-none p-0 focus:ring-0 resize-none leading-relaxed"
+                          readOnly={!item.selected}
+                        />
                       </div>
                     </div>
                     <div className="space-y-4 relative border-l border-slate-100 pl-0 md:pl-10">
@@ -1391,11 +1556,43 @@ export default function HeatCheckAdmin() {
                         </span>
                       </div>
                       <div className="border-l-4 border-blue-400 pl-4">
-                        <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
-                          {item.solution}
-                        </p>
+                        <AutoResizeTextarea
+                          value={item.solution}
+                          onChange={(e: any) =>
+                            handleTextChange(idx, "solution", e.target.value)
+                          }
+                          className="w-full bg-transparent text-base text-slate-700 border-none p-0 focus:ring-0 resize-none leading-relaxed"
+                          readOnly={!item.selected}
+                        />
                       </div>
                     </div>
+                  </div>
+
+                  {/* Per-item Feedback */}
+                  <div className="mt-6 pt-4 border-t border-slate-100 print:hidden">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-xs text-slate-500 font-bold">AI評価:</span>
+                      <button
+                        onClick={() => handleItemFeedback(idx, 'good')}
+                        className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold border transition ${item.feedback?.rating === 'good' ? 'bg-green-100 border-green-400 text-green-700' : 'border-slate-200 bg-white hover:bg-green-50 hover:border-green-300 text-slate-500'}`}
+                      >
+                        <ThumbsUp className="w-3.5 h-3.5" /> Good
+                      </button>
+                      <button
+                        onClick={() => handleItemFeedback(idx, 'bad')}
+                        className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold border transition ${item.feedback?.rating === 'bad' ? 'bg-red-100 border-red-400 text-red-700' : 'border-slate-200 bg-white hover:bg-red-50 hover:border-red-300 text-slate-500'}`}
+                      >
+                        <ThumbsDown className="w-3.5 h-3.5" /> Bad
+                      </button>
+                    </div>
+                    {item.feedback?.rating === 'bad' && (
+                      <textarea
+                        value={item.feedback.reason || ''}
+                        onChange={(e) => handleItemFeedbackReason(idx, e.target.value)}
+                        placeholder="AIの回答が良くない理由や、あるべき正解を入力してください（学習データになります）"
+                        className="mt-3 w-full text-sm border border-red-200 bg-red-50 p-3 focus:ring-1 focus:ring-red-300 focus:border-red-300 outline-none resize-y min-h-[60px]"
+                      />
+                    )}
                   </div>
                 </div>
               ))}
@@ -1410,21 +1607,54 @@ export default function HeatCheckAdmin() {
                 </div>
                 <div className="divide-y divide-slate-100">
                   {manualImprovements.map((item: any, idx: number) => (
-                    <div key={idx} className="p-8 hover:bg-slate-50 transition">
+                    <div
+                      key={idx}
+                      className={`p-8 transition border-l-4 ${item.selected ? "bg-white border-orange-500" : "bg-slate-50 border-transparent opacity-60"}`}
+                    >
+                      <div className="mb-4 flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={item.selected}
+                          onChange={() => toggleManualImprovementSelection(idx)}
+                          className="w-6 h-6 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                        />
+                        <span className="text-xs bg-orange-200 text-orange-700 px-2 py-0.5 font-bold">
+                          Designer
+                        </span>
+                        <span
+                          className={`font-bold ${item.selected ? "text-orange-700" : "text-slate-400"}`}
+                        >
+                          {item.selected ? "レポートに含める" : "レポートから除外"}
+                        </span>
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                         <div className="space-y-4">
                           <div className="flex items-start gap-3">
                             <span className="bg-orange-100 text-orange-600 font-bold px-2 py-1 text-xs mt-1 shrink-0">
                               追記 {idx + 1}
                             </span>
-                            <h3 className="font-bold text-xl text-slate-800">
-                              {item.title || "(タイトル未入力)"}
-                            </h3>
+                            <input
+                              type="text"
+                              value={item.title}
+                              onChange={(e) =>
+                                updateManualImprovement(idx, "title", e.target.value)
+                              }
+                              disabled={!item.selected}
+                              className="font-bold text-xl text-slate-800 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-orange-500 outline-none w-full pb-1 disabled:text-slate-400"
+                              placeholder="(タイトル未入力)"
+                            />
                           </div>
                           <div className="border-l-4 border-red-400 pl-4">
-                            <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
-                              {item.problem || "(未入力)"}
-                            </p>
+                            <AutoResizeTextarea
+                              value={item.problem}
+                              onChange={(e: any) =>
+                                updateManualImprovement(idx, "problem", e.target.value)
+                              }
+                              className="w-full bg-transparent text-base text-slate-700 border-none p-0 focus:ring-0 resize-none leading-relaxed"
+                              readOnly={!item.selected}
+                              placeholder="(未入力)"
+                            />
                           </div>
                         </div>
                         <div className="space-y-4 relative border-l border-slate-100 pl-0 md:pl-10">
@@ -1435,9 +1665,15 @@ export default function HeatCheckAdmin() {
                             </span>
                           </div>
                           <div className="border-l-4 border-blue-400 pl-4">
-                            <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
-                              {item.solution || "(未入力)"}
-                            </p>
+                            <AutoResizeTextarea
+                              value={item.solution}
+                              onChange={(e: any) =>
+                                updateManualImprovement(idx, "solution", e.target.value)
+                              }
+                              className="w-full bg-transparent text-base text-slate-700 border-none p-0 focus:ring-0 resize-none leading-relaxed"
+                              readOnly={!item.selected}
+                              placeholder="(未入力)"
+                            />
                           </div>
                         </div>
                       </div>
@@ -1542,6 +1778,34 @@ export default function HeatCheckAdmin() {
                   )}
                 </button>
               )}
+            </div>
+
+            {/* Feedback Save Area */}
+            <div className="bg-blue-50 p-6 border-t border-blue-200 print:hidden">
+              <div className="max-w-xl mx-auto flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-blue-800">AI学習用フィードバック</p>
+                  <p className="text-xs text-blue-600 mt-1">各項目のGood/Bad評価を保存して、AIの精度を向上させます。</p>
+                </div>
+                {feedbackStatus === 'saved' ? (
+                  <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-300 px-4 py-2">
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="text-sm font-bold">保存しました！AIの精度向上に活用されます</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleSaveFeedback}
+                    disabled={feedbackStatus === 'saving'}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 shadow transition disabled:opacity-50"
+                  >
+                    {feedbackStatus === 'saving' ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> 保存中...</>
+                    ) : (
+                      <><Upload className="w-4 h-4" /> フィードバックを保存して学習させる</>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Bottom Action Area */}
@@ -1711,6 +1975,33 @@ export default function HeatCheckAdmin() {
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Per-item Feedback (Estimate) */}
+                  <div className="mt-6 pt-4 border-t border-slate-100 print:hidden">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-xs text-slate-500 font-bold">AI評価:</span>
+                      <button
+                        onClick={() => handleItemFeedback(idx, 'good')}
+                        className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold border transition ${item.feedback?.rating === 'good' ? 'bg-green-100 border-green-400 text-green-700' : 'border-slate-200 bg-white hover:bg-green-50 hover:border-green-300 text-slate-500'}`}
+                      >
+                        <ThumbsUp className="w-3.5 h-3.5" /> Good
+                      </button>
+                      <button
+                        onClick={() => handleItemFeedback(idx, 'bad')}
+                        className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold border transition ${item.feedback?.rating === 'bad' ? 'bg-red-100 border-red-400 text-red-700' : 'border-slate-200 bg-white hover:bg-red-50 hover:border-red-300 text-slate-500'}`}
+                      >
+                        <ThumbsDown className="w-3.5 h-3.5" /> Bad
+                      </button>
+                    </div>
+                    {item.feedback?.rating === 'bad' && (
+                      <textarea
+                        value={item.feedback.reason || ''}
+                        onChange={(e) => handleItemFeedbackReason(idx, e.target.value)}
+                        placeholder="AIの回答が良くない理由や、あるべき正解を入力してください（学習データになります）"
+                        className="mt-3 w-full text-sm border border-red-200 bg-red-50 p-3 focus:ring-1 focus:ring-red-300 focus:border-red-300 outline-none resize-y min-h-[60px]"
+                      />
+                    )}
                   </div>
                 </div>
               ))}
