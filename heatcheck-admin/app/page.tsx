@@ -289,6 +289,7 @@ export default function HeatCheckAdmin() {
 
   // Feedback State
   const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [regenerating, setRegenerating] = useState(false);
 
   // UI State
   const [sliderPos, setSliderPos] = useState(50);
@@ -381,7 +382,7 @@ export default function HeatCheckAdmin() {
   const allImprovements = [...editedImprovements, ...savedManualImprovements];
 
   // --- AI Analysis Logic ---
-  const runAnalysis = async () => {
+  const runAnalysis = async (feedbackContext?: string) => {
     if (!orgImage || !heatImage) {
       alert("元画像とヒートマップ画像をアップロードしてください。");
       return;
@@ -389,6 +390,8 @@ export default function HeatCheckAdmin() {
 
     setLoading(true);
     setError(null);
+    setRegenerating(!!feedbackContext);
+    setFeedbackStatus('idle');
     setStep("analyzing");
 
     try {
@@ -483,6 +486,17 @@ export default function HeatCheckAdmin() {
         ${DESIGN_GUIDELINES}
         """
 
+        ${feedbackContext ? `
+        【デザイナーのフィードバック（最優先 - 再生成指示）】
+        前回の診断結果に対して、担当デザイナーから以下のフィードバックが届いています。
+        今回の再生成では、このフィードバックを最優先で反映した改善提案を作成してください。
+
+        ${feedbackContext}
+
+        - Good評価の提案は正しい方向性として維持・強化してください。
+        - Bad評価の提案は、デザイナーの指摘に沿って内容を修正または別の観点からの提案に差し替えてください。
+        ` : ''}
+
         【サマリー生成の絶対ルール（Tone & Manner）】
         - **「デザイナーの指摘通り」「ご入力いただいた懸念の通り」等のメタな発言は禁止です。** 入力された所感は、あくまで「解析のヒント」として内部的に使い、出力文には含めないでください。
         - 全ての分析結果は、あくまで「HeatCheckのAI解析とヒートマップデータに基づいた客観的な事実」として、**「私（HeatCheck）の言葉」**で語ってください。
@@ -528,7 +542,7 @@ export default function HeatCheckAdmin() {
       ];
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -545,7 +559,12 @@ export default function HeatCheckAdmin() {
         },
       );
 
-      if (!response.ok) throw new Error("API Request Failed");
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(
+          `API Request Failed: ${response.status} ${response.statusText} - ${JSON.stringify(errorBody)}`,
+        );
+      }
 
       const data = await response.json();
       const textResponse = data.candidates[0].content.parts[0].text;
@@ -566,6 +585,7 @@ export default function HeatCheckAdmin() {
       setStep("input");
     } finally {
       setLoading(false);
+      setRegenerating(false);
     }
   };
 
@@ -662,7 +682,26 @@ export default function HeatCheckAdmin() {
         },
       });
       setFeedbackStatus('saved');
-      setTimeout(() => setFeedbackStatus('idle'), 3000);
+
+      // フィードバック内容を元に再生成用コンテキストを構築
+      const goodItems = editedImprovements.filter((i: any) => i.feedback?.rating === 'good');
+      const badItems = editedImprovements.filter((i: any) => i.feedback?.rating === 'bad');
+
+      let feedbackContext = '';
+      if (goodItems.length > 0) {
+        feedbackContext += `■ 適切だった提案（Good評価 - 維持・強化してください）:\n`;
+        feedbackContext += goodItems.map((i: any) => `- 「${i.title}」`).join('\n');
+        feedbackContext += '\n\n';
+      }
+      if (badItems.length > 0) {
+        feedbackContext += `■ 見直しが必要な提案（Bad評価 - 修正または差し替えてください）:\n`;
+        feedbackContext += badItems.map((i: any) =>
+          `- 「${i.title}」${i.feedback?.reason ? `\n  デザイナーの指摘: ${i.feedback.reason}` : ''}`
+        ).join('\n');
+      }
+
+      // 少し待ってから再生成を実行
+      setTimeout(() => runAnalysis(feedbackContext || undefined), 800);
     } catch (err) {
       console.error('Failed to save feedback:', err);
       setFeedbackStatus('idle');
@@ -1249,12 +1288,22 @@ export default function HeatCheckAdmin() {
         <div className="bg-white p-8 shadow-xl max-w-md w-full text-center border-t-4 border-orange-500">
           <Loader2 className="w-16 h-16 text-orange-600 animate-spin mx-auto mb-6" />
           <h2 className="text-2xl font-bold text-slate-800 mb-2">
-            AI解析中...
+            {regenerating ? "診断結果を再生成中..." : "AI解析中..."}
           </h2>
           <p className="text-slate-500 mb-6">
-            ヒートマップおよびAttention Insightデータを統合解析し、
-            <br />
-            最適な改善案を算出しています。
+            {regenerating ? (
+              <>
+                フィードバックの内容を反映し、
+                <br />
+                改善提案を再生成しています。
+              </>
+            ) : (
+              <>
+                ヒートマップおよびAttention Insightデータを統合解析し、
+                <br />
+                最適な改善案を算出しています。
+              </>
+            )}
           </p>
           <div className="w-full bg-slate-100 h-2 overflow-hidden">
             <div className="bg-gradient-to-r from-orange-500 to-red-600 h-full w-2/3 animate-pulse"></div>
@@ -2446,7 +2495,7 @@ export default function HeatCheckAdmin() {
             </div>
 
             <button
-              onClick={runAnalysis}
+              onClick={() => runAnalysis()}
               disabled={loading || !orgImage || !heatImage}
               className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white text-lg font-bold py-4 shadow-lg shadow-orange-500/30 transition transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-3"
             >
